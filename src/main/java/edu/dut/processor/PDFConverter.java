@@ -44,13 +44,9 @@ public class PDFConverter {
                 try {
                     out.close();
                 } catch (Exception e) {
-                    // Ignore
+                    e.printStackTrace();
                 }
             }
         }
-    }
-    
-    public void shutdown() {
-        // No cleanup needed
     }
 }

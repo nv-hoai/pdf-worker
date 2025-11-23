@@ -84,7 +84,6 @@ public class WorkerMain {
             
         } catch (IOException e) {
             System.err.println("Connection error: " + e.getMessage());
-            e.printStackTrace();
         } finally {
             cleanup();
         }
@@ -198,7 +197,6 @@ public class WorkerMain {
             result.put("requestId", requestId);
             result.put("pdfFilename", pdfFilename);
             result.put("success", true);
-            result.put("errorMessage", null);
             result.setFileData(pdfFileData, pdfFileData.length);
             
             sendMessage(result);
@@ -208,12 +206,10 @@ public class WorkerMain {
             
         } catch (Exception e) {
             System.err.println("✗ Job #" + requestId + " failed: " + e.getMessage());
-            e.printStackTrace();
             
             // Send failure result
             WorkerMessage result = new WorkerMessage(MessageType.JOB_RESULT_FAILED, workerId);
             result.put("requestId", requestId);
-            result.put("pdfFilename", null);
             result.put("success", false);
             result.put("errorMessage", e.getMessage());
             
@@ -260,10 +256,6 @@ public class WorkerMain {
         System.out.println("Shutting down worker...");
         
         running = false;
-        
-        if (converter != null) {
-            converter.shutdown();
-        }
         
         try {
             if (out != null) out.close();

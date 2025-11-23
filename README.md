@@ -1,61 +1,62 @@
-# 🖥️ Worker Chuyển Đổi PDF
+# PDF Conversion Worker
 
-Worker độc lập cho hệ thống chuyển đổi PDF phân tán sử dụng **Docx4j + Apache FOP**.
+Worker node độc lập cho hệ thống chuyển đổi PDF phân tán.
 
-**✨ Tính năng:**
-- 🚀 **Không Cần Cấu Hình** - Không cần shared storage
-- 📦 **Truyền File qua TCP** - Tất cả file được truyền qua mạng
-- 🔧 **Plug & Play** - Chỉ cần kết nối tới master server và chạy
-- 💻 **Đa Nền Tảng** - Windows, Linux, macOS
-- 📚 **Chất Lượng Cao** - Docx4j + Apache FOP hỗ trợ Unicode tốt
-- 🌏 **Hỗ Trợ Tiếng Việt** - Render hoàn hảo font tiếng Việt
-- ⚡ **Tự Động Kết Nối Lại** - Tự động kết nối lại nếu mất kết nối
-- 🧹 **Tự Động Dọn Dẹp** - File tạm được xóa tự động
+## Tổng quan
 
-## 📋 Yêu Cầu
+Worker kết nối tới Master Server qua TCP, nhận file Word qua mạng, chuyển đổi sang PDF bằng Docx4j + Apache FOP, và gửi kết quả trả về.
 
-- **Java 8+** (JRE hoặc JDK)
-- **Mạng** kết nối tới Master server port 7777
-- **Không cần LibreOffice!** (Sử dụng thư viện Java Docx4j thuần túy)
+**Đặc điểm:**
+- Không cần shared storage - file truyền qua TCP
+- Plug & Play - chỉ cần kết nối và chạy
+- Đa nền tảng - Windows, Linux, macOS
+- Tự động kết nối lại khi mất kết nối
+- Tự động dọn dẹp file tạm
 
-## 🛠️ Công Nghệ Sử Dụng
+## Yêu cầu hệ thống
 
-- **Docx4j 11.4.9** - Xử lý tài liệu Word
-- **Apache FOP 2.9** - Engine render PDF
-- **Java Sockets** - Giao tiếp TCP
-- **ObjectInputStream/OutputStream** - Giao thức binary
+- Java 8 trở lên (JRE hoặc JDK)
+- Kết nối mạng tới Master Server port 7777
+- Không cần LibreOffice
 
-## 🚀 Build Project
+## Stack công nghệ
+
+- Docx4j 11.4.9 - Xử lý tài liệu Word
+- Apache FOP 2.9 - Render PDF
+- Java Sockets - TCP communication
+- ObjectInputStream/OutputStream - Binary protocol
+
+## Build project
 
 ```bash
 mvn clean package
 ```
 
-Lệnh này sẽ tạo ra:
+Output:
 - `target/pdf-worker-1.0.0.jar` - JAR thường
-- `target/pdf-worker-1.0.0-jar-with-dependencies.jar` - **Fat JAR (dùng file này)**
+- `target/pdf-worker-1.0.0-jar-with-dependencies.jar` - Fat JAR (sử dụng file này)
 
-## 📦 Chạy Worker
+## Chạy worker
 
-### Cách Dùng Cơ Bản
+### Cú pháp
 
 ```bash
-java -jar target/pdf-worker-1.0.0-jar-with-dependencies.jar <server-ip> <server-port>
+java -jar pdf-worker-1.0.0-jar-with-dependencies.jar <server-ip> <server-port>
 ```
 
-### Ví Dụ
+### Ví dụ
 
-**Kết nối tới server local:**
+**Local:**
 ```bash
 java -jar pdf-worker-1.0.0-jar-with-dependencies.jar localhost 7777
 ```
 
-**Kết nối tới server từ xa:**
+**Remote:**
 ```bash
 java -jar pdf-worker-1.0.0-jar-with-dependencies.jar 192.168.1.100 7777
 ```
 
-**Sử dụng script khởi động:**
+**Script:**
 ```bash
 # Windows
 start-worker.bat 192.168.1.100 7777
@@ -64,30 +65,29 @@ start-worker.bat 192.168.1.100 7777
 ./start-worker.sh 192.168.1.100 7777
 ```
 
-## 🔧 Cách Hoạt Động
+## Cách hoạt động
 
-### Kiến Trúc Truyền File qua TCP
+### Kiến trúc truyền file qua TCP
 
 ```
 Master Server                    Worker
      │                              │
      ├─ User upload file Word       │
-     │                              │
      ├─ Đọc file → byte[]           │
      │                              │
-     ├─ TCP Gửi: {                  │
+     ├─ TCP Send: {                 │
      │    requestId: 123,            │
      │    fileData: [bytes],         │
      │    fileSize: 524288           │
      │  } ─────────────────────────► │
      │                              │
      │                              ├─ Nhận file bytes
-     │                              ├─ Lưu temp: /tmp/word_123.docx
-     │                              ├─ Chuyển đổi → /tmp/pdf_123.pdf
+     │                              ├─ Lưu temp: word_123.docx
+     │                              ├─ Docx4j + FOP → pdf_123.pdf
      │                              ├─ Đọc PDF → byte[]
      │                              ├─ Xóa file temp
      │                              │
-     │ ◄─────────────────────────── │ TCP Gửi: {
+     │ ◄─────────────────────────── │ TCP Send: {
      │                              │   requestId: 123,
      │                              │   pdfData: [bytes],
      │                              │   fileSize: 128000
@@ -95,105 +95,105 @@ Master Server                    Worker
      │                              │
      ├─ Nhận PDF bytes              │
      ├─ Lưu vào outputs/            │
-     ├─ User tải PDF xuống          │
+     └─ User download PDF           │
 ```
 
-**✅ Lợi Ích:**
+### Ưu điểm
+
 - Không cần cấu hình NFS/SMB
-- Workers có thể ở bất kỳ đâu (mạng khác nhau, cloud, v.v.)
-- Dễ dàng triển khai Docker/Kubernetes
+- Workers có thể ở bất kỳ đâu (khác mạng, cloud)
+- Dễ triển khai Docker/Kubernetes
 - Tự động dọn dẹp file tạm
 
-## 🖥️ Kịch Bản Triển Khai
+## Deployment scenarios
 
-### Máy Đơn (Development)
+### Single machine (Development)
 
 ```bash
-# Khởi động master server (webapp)
-# Deploy pdfconverterv9.war vào Tomcat port 8080
-
-# Khởi động worker
+# 1. Deploy master server (pdfconverterv9.war) vào Tomcat
+# 2. Khởi động worker
 java -jar pdf-worker.jar localhost 7777
 ```
 
-### Nhiều Workers (Production)
+### Multiple workers (Production)
 
-**Máy Server (192.168.1.100):**
-```bash
-# Deploy webapp vào Tomcat
-# Master TCP server sẽ lắng nghe trên port 7777
-```
+**Server (192.168.1.100):**
+- Deploy webapp vào Tomcat
+- Master TCP server listen port 7777
 
-**Máy Worker 1:**
+**Worker 1:**
 ```bash
 java -jar pdf-worker.jar 192.168.1.100 7777
 ```
 
-**Máy Worker 2:**
+**Worker 2:**
 ```bash
 java -jar pdf-worker.jar 192.168.1.100 7777
 ```
 
-**Máy Worker 3:**
+**Worker 3:**
 ```bash
 java -jar pdf-worker.jar 192.168.1.100 7777
 ```
 
-## 🔍 Giám Sát
+## Monitoring
+
+### Console logs
 
 Worker xuất log ra console:
+
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🔧 PDF Conversion Worker Đang Khởi Động...
+PDF Conversion Worker Starting...
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Worker ID: worker-a1b2c3d4
 Server: 192.168.1.100:7777
-Chế độ: Truyền File qua TCP (Không cần shared storage)
+Mode: TCP File Transfer (No shared storage)
 Converter: Docx4j + Apache FOP
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✓ PDF Converter khởi tạo bằng Docx4j + Apache FOP
-➤ Đang kết nối tới Master tại 192.168.1.100:7777...
-✓ Đã kết nối tới master server
-→ Đang gửi đăng ký...
-✓ Đăng ký thành công với master
-✓ Sẵn sàng nhận công việc
+✓ PDF Converter initialized
+➤ Connecting to Master at 192.168.1.100:7777...
+✓ Connected to master server
+→ Sending registration...
+✓ Registration successful
+✓ Ready to receive jobs
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📄 Đang Xử Lý Job #123
-   File: report.docx (512 KB)
+Processing Job #123
+File: report.docx (512 KB)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✓ Đã lưu file Word tạm: word_123_abc.docx
-✓ Đã chuyển đổi: word_123_abc.docx → pdf_123_xyz.pdf
-✓ Chuyển đổi hoàn tất
-✓ Job #123 hoàn thành trong 3421ms
-✓ Kích thước PDF: 128 KB
-✓ Đã xóa file input tạm
-✓ Đã xóa file output tạm
+✓ Saved temp Word file: word_123_abc.docx
+✓ Converted: word_123_abc.docx → pdf_123_xyz.pdf
+✓ Conversion completed
+✓ Job #123 completed in 3421ms
+✓ PDF size: 128 KB
+✓ Cleaned up temp files
 ```
 
-### Dashboard Master Server
+### Web dashboard
 
-Xem tất cả workers và trạng thái tại:
+Truy cập Master Server:
 ```
-http://server-ip:8080/pdfconverterv9/workers.jsp
+http://server-ip:8080/pdfconverterv9/admin/workers
 ```
 
-**Dashboard hiển thị:**
+Dashboard hiển thị:
 - Worker ID và hostname
-- Trạng thái (IDLE/BUSY/OFFLINE)
-- Số jobs hoàn thành/thất bại
-- CPU cores và bộ nhớ
-- Thời gian heartbeat cuối
-- Cập nhật real-time
+- Status (IDLE/BUSY/OFFLINE)
+- Jobs completed/failed
+- CPU cores và memory
+- Last heartbeat
+- Real-time updates
 
-## 🐛 Xử Lý Sự Cố
+## Troubleshooting
 
-### Lỗi Connection Refused
+### Connection refused
 
-**Lỗi:** `Connection error: Connection refused`
+**Error:** `Connection error: Connection refused`
 
-**Giải pháp:**
+**Solutions:**
+
 1. Kiểm tra master server đang chạy
-2. Kiểm tra firewall cho phép port 7777:
+2. Mở port 7777 trên firewall:
    ```bash
    # Windows
    netsh advfirewall firewall add rule name="PDF Worker" dir=in action=allow protocol=TCP localport=7777
@@ -201,72 +201,94 @@ http://server-ip:8080/pdfconverterv9/workers.jsp
    # Linux
    sudo ufw allow 7777/tcp
    ```
-3. Xác minh địa chỉ IP server đúng
-4. Kiểm tra Tomcat logs xem Master TCP Server đã khởi động chưa
+3. Xác minh IP và port đúng
+4. Kiểm tra Tomcat logs (Master TCP Server đã start chưa)
 
-### Lỗi Hết Bộ Nhớ
+### Out of memory
 
-**Lỗi:** `OutOfMemoryError` hoặc `Java heap space`
+**Error:** `OutOfMemoryError` hoặc `Java heap space`
 
-**Giải pháp:**
+**Solutions:**
+
 ```bash
-# Tăng heap size lên 2GB
+# Tăng heap 2GB
 java -Xmx2048m -jar pdf-worker.jar localhost 7777
 
-# Với file lớn (>10MB)
+# File lớn (>10MB) cần 4GB
 java -Xmx4096m -jar pdf-worker.jar localhost 7777
 ```
 
-### Lỗi Chuyển Đổi
+### Conversion failed
 
-**Lỗi:** `Conversion failed` hoặc PDF bị lỗi layout
+**Error:** `Conversion failed` hoặc PDF bị lỗi layout
 
-**Nguyên nhân có thể:**
-1. **Tài liệu Word phức tạp** - Docx4j có thể không hỗ trợ tất cả tính năng
-2. **Thiếu font** - Cài đặt font cần thiết trên máy worker
-3. **File bị hỏng** - Thử mở bằng Word để kiểm tra
+**Nguyên nhân:**
+- Tài liệu Word phức tạp (Docx4j không hỗ trợ hết)
+- Thiếu font (cài Arial, Times New Roman cho tiếng Việt)
+- File bị corrupt
 
-**Giải pháp:**
-- Với tiếng Việt: Cài đặt font Arial, Times New Roman
-- Với tài liệu phức tạp: Cân nhắc dùng Aspose.Words (thương mại)
-- Xem worker logs để biết chi tiết lỗi
+**Solutions:**
+- Cài đặt font cần thiết
+- Kiểm tra file Word mở được không
+- Xem worker logs để biết chi tiết
 
-### Worker Không Hiển Thị Trong Dashboard
+### Worker không hiển thị dashboard
 
-**Triệu chứng:** Worker đã kết nối nhưng không thấy ở `/workers.jsp`
+**Triệu chứng:** Worker kết nối nhưng không thấy trên `/admin/workers`
 
-**Giải pháp:**
-1. Kiểm tra worker logs có dòng "✓ Đăng ký thành công"
-2. Refresh trang dashboard (tự động cập nhật mỗi 5 giây)
-3. Kiểm tra Master server logs xem có thông báo đăng ký không
-4. Xác minh kết nối mạng giữa worker và master
+**Solutions:**
+1. Kiểm tra worker logs có "Registration successful"
+2. Refresh trang (auto-update mỗi 5 giây)
+3. Kiểm tra Master server logs
+4. Xác minh kết nối mạng
 
-## 🔐 Lưu Ý Bảo Mật
+## Security notes
 
-- Worker kết nối **TỚI** master, không phải ngược lại
-- Không yêu cầu xác thực (giả định mạng nội bộ)
-- File được truyền qua TCP (mặc định không mã hóa)
-- Với production, dùng VPN hoặc SSH tunnel:
+- Worker kết nối TỚI master (không phải ngược lại)
+- Không authentication (giả định internal network)
+- File transfer qua TCP plaintext (không mã hóa)
+- Production: dùng VPN hoặc SSH tunnel
   ```bash
   ssh -L 7777:localhost:7777 user@server-ip
   java -jar pdf-worker.jar localhost 7777
   ```
 
-## 📊 Hiệu Suất
+## Performance
 
-- Mỗi worker xử lý **1 job tại một thời điểm** (tuần tự)
-- Tốc độ truyền file phụ thuộc vào băng thông mạng
-- Kích thước file đề xuất: **< 50 MB** để hiệu suất tối ưu
-- File lớn (> 100 MB) có thể gây vấn đề về bộ nhớ
+**Xử lý:**
+- Mỗi worker: 1 job tại một thời điểm (sequential)
+- Tốc độ tùy bandwidth
+- Recommended file size: < 50 MB
+- Large files (> 100 MB): có thể gây OOM
 
-**Ước Tính Throughput:**
-- Mạng local (1 Gbps): ~2-5 giây/tài liệu
-- Mạng từ xa (100 Mbps): ~5-15 giây/tài liệu
-- Nhiều workers mở rộng tuyến tính
+**Throughput estimate:**
+- Local network (1 Gbps): ~2-5s/document
+- Remote network (100 Mbps): ~5-15s/document
+- Multiple workers: linear scaling
 
-## 🛑 Tắt Worker
+## Configuration
 
-- Nhấn `Ctrl+C` để tắt an toàn
-- Worker sẽ thông báo master trước khi ngắt kết nối
-- Job đang chạy sẽ hoàn thành trước khi tắt
-- File tạm tự động được dọn dẹp
+### Increase memory
+
+```bash
+java -Xmx4096m -jar pdf-worker.jar server-ip 7777
+```
+
+### Background process
+
+**Windows:**
+```bash
+start /B java -jar pdf-worker.jar server-ip 7777 > worker.log 2>&1
+```
+
+**Linux:**
+```bash
+nohup java -jar pdf-worker.jar server-ip 7777 > worker.log 2>&1 &
+```
+
+## Shutdown
+
+- `Ctrl+C` để tắt gracefully
+- Worker thông báo master trước khi disconnect
+- Job đang chạy sẽ complete trước
+- File tạm tự động cleanup
